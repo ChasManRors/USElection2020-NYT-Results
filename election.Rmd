@@ -167,7 +167,7 @@ counties_sf %>%
   scale_alpha(range = c(0.75, 1), guide = "none") +
   labs(title = "**Kanye West Vote Share in US 2020 Presidential Election**", 
        subtitle = "Note: In many counties votes are still being counted.\n",
-       caption = "\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n") +
+       caption = glue::glue("\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n")) +
   theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
         plot.subtitle = element_text(hjust = 0.5),
         legend.position = "top") +
