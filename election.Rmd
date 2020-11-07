@@ -75,7 +75,7 @@ write_csv(election_results, path = paste0("data/", real_time, "/results_presiden
 ```{r, data}
 counties_sf <- get_urbn_map("counties", sf = TRUE)
 
-election_results <- read_csv("data/2020-11-07 17-02-12/results_president.csv")
+election_results <- read_csv(paste0("data/", real_time, "/results_president.csv"))
 
 
 alaska_fips <- counties_sf %>% 
@@ -116,6 +116,27 @@ counties_sf %>%
   scale_alpha(range = c(0.8, 1), guide = "none")
 ```
 
+```{r}
+elex <- elex %>% 
+  mutate(margin2020_cat = case_when(
+    margin2020 >= 20 ~ "Trump +20%",
+    # margin2020 < 80 & margin2020 >= 60 ~ "Trump +60-80%",
+    # margin2020 < 75 & margin2020 >= 50 ~ "Trump +40-80%",
+    margin2020 < 20 & margin2020 >= 10 ~ "Trump +10-20%",
+    margin2020 < 10 & margin2020 >= 0 ~ "Trump +0-10%",
+    margin2020 < 0 & margin2020 >= -10 ~ "Biden +0-10%",
+    margin2020 < -10 & margin2020 >= -20 ~ "Biden +10-20%",
+    # margin2020 < -40 & margin2020 >= -80 ~ "Biden +40-80%",
+    # margin2020 < -60 & margin2020 >= -80 ~ "Biden +60-80%",
+    margin2020 <= -20 ~ "Biden +20%"
+  )) 
+
+elex %>% count(margin2020_cat) %>% arrange(margin2020_cat)# %>% pull(margin2020_cat) %>% dput()
+
+elex %>% filter(is.na(margin2020_cat)) %>% 
+  select(margin2020)
+```
+
 
 ```{r, data}
 library(ggtext)
@@ -152,6 +173,59 @@ tidytemplate::ggsave_it(us2020map, width = 8, height = 6)
 
 
 ```
+
+```{r}
+library(ggtext)
+library(colorspace)
+
+
+counties_sf %>% 
+  left_join(elex) %>% 
+  mutate(abs_margin2020 = abs(margin2020)) %>% 
+  drop_na(margin2020) %>% 
+  mutate(margin2020_cat = fct_relevel(margin2020_cat, c("Biden +20%",
+                                                        # "Biden +60-80%",
+                                                        # "Biden +40-80%",
+                                                        "Biden +10-20%", 
+                                                        "Biden +0-10%", 
+                                                        "Trump +0-10%", 
+                                                        "Trump +10-20%",
+                                                        # "Trump +40-80%",
+                                                        # "Trump +60-80%", 
+                                                        "Trump +20%"))) %>% 
+  ggplot(aes(fill = margin2020_cat)) +
+  geom_sf(aes(alpha = abs_margin2020), 
+          color = NA)   +
+  geom_sf(data = get_urbn_map("states", sf = T), color = "black", inherit.aes = F, fill = NA) +
+  # scale_fill_gradient2("Margins", 
+  #                      low = "#0000ff", 
+  #                      mid = "purple", 
+  #                      high = "#ff0803",
+  #                      labels = c("+50% Biden", "0%", "+50% Trump"),
+  #                      breaks = c(-50, 0, 50)) +
+  theme_void() +
+  scale_alpha(range = c(0.5, 1), guide = "none") +
+  labs(title = "**Preliminary** Results of US 2020 Election", 
+       subtitle = "Note: In many counties votes are still being counted.\n",
+       caption = glue::glue("\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n")) +
+  theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "right") + 
+  scale_fill_discrete_diverging("Blue-Red 2",
+                       name = "Margins") 
+
+tidytemplate::ggsave_it(us2020map_diff, width = 8, height = 6)
+
+colorspace::hcl_palettes("Diverging", palette = "Red-Blue", 6)
+
+colors <- hcl_palettes(palette = "Blue-Red 2", n = 10, plot = T)
+
+colors$fixup
+
+diverge_hcl(10, palette = "Blue-Red 2") %>% 
+  dput
+```
+
 
 ```{r}
 counties_sf %>% 
