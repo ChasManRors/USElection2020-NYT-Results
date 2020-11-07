@@ -75,6 +75,9 @@ write_csv(election_results, path = paste0("data/", real_time, "/results_presiden
 ```{r, data}
 counties_sf <- get_urbn_map("counties", sf = TRUE)
 
+election_results <- read_csv("data/2020-11-07 17-02-12/results_president.csv")
+
+
 alaska_fips <- counties_sf %>% 
   filter(state_name == "Alaska") %>% 
   pull(county_fips) 
@@ -117,6 +120,7 @@ counties_sf %>%
 ```{r, data}
 library(ggtext)
 
+
 counties_sf %>% 
   left_join(elex) %>% 
   mutate(abs_margin2020 = abs(margin2020)) %>% 
@@ -134,7 +138,7 @@ counties_sf %>%
   scale_alpha(range = c(0.75, 1), guide = "none") +
   labs(title = "**Preliminary** Results of US 2020 Election", 
        subtitle = "Note: In many counties votes are still being counted.\n",
-       caption = "\nSource: New York Times. Last updated: 2020-11-07 14:15:14. Visualization created by @favstats") +
+       caption = glue::glue("\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n")) +
   theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
         plot.subtitle = element_text(hjust = 0.5),
         legend.position = "top") +
@@ -144,7 +148,7 @@ counties_sf %>%
                                 barheight = 0.8,  
                                 title.vjust = 0.9))
 
-ggsave_it(us2020map, width = 8, height = 6)
+tidytemplate::ggsave_it(us2020map, width = 8, height = 6)
 
 
 ```
@@ -163,7 +167,7 @@ counties_sf %>%
   scale_alpha(range = c(0.75, 1), guide = "none") +
   labs(title = "**Kanye West Vote Share in US 2020 Presidential Election**", 
        subtitle = "Note: In many counties votes are still being counted.\n",
-       caption = "\nSource: New York Times. Last updated: 2020-11-07 14:15:14. Visualization created by @favstats") +
+       caption = "\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n") +
   theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
         plot.subtitle = element_text(hjust = 0.5),
         legend.position = "top") +
@@ -173,7 +177,7 @@ counties_sf %>%
                                 barheight = 0.8,  
                                 title.vjust = 0.9))
 
-ggsave_it(kanye_map, width = 8, height = 6)
+tidytemplate::ggsave_it(kanye_map, width = 8, height = 6)
 
 ```
 
