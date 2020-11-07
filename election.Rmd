@@ -1,0 +1,199 @@
+---
+title: "Tidy Template"
+author: "Fabio Votta"
+date: "The Date"
+output: html_document
+---
+
+This script is about:
+
+
+
+## Packages and Folders
+
+```{r}
+# Install these packages if you don't have them yet
+# if (!require("pacman")) install.packages("pacman")
+# devtools::install_github("favstats/tidytemplate")
+
+# devtools::install_github("UrbanInstitute/urbnmapr")
+
+
+pacman::p_load(tidyverse, urbnmapr, rvest)
+
+# Creates folders
+# tidytemplate::data_dir()
+# tidytemplate::images_dir()
+```
+
+
+## Load Data
+
+```{r, data}
+states <- get_urbn_map("states", sf = F)
+
+state_strings <- states %>% 
+  count(state_name, sort = T) %>% 
+  pull(state_name) %>% 
+  str_to_lower() %>% 
+  str_replace_all(" ", "-")
+
+
+get_county_dat <- function(x) {
+  
+  time <- Sys.time()
+  
+  json_url <- glue::glue("https://static01.nyt.com/elections-assets/2020/data/api/2020-11-03/race-page/{x}/president.json")
+  
+  res <- jsonlite::fromJSON(json_url)
+  
+  cleaned <- res[["data"]][["races"]][["counties"]][[1]]  %>% 
+    rowwise() %>%
+    mutate(results = list(as.list(results)),
+           results_absentee = list(as.list(results_absentee)),
+           state = x, 
+           retrieved_time = time) %>%
+    unnest_wider(results, names_sep = "_")  %>%
+    unnest_wider(results_absentee, names_sep = "_")  %>% 
+    janitor::clean_names()
+  
+    return(cleaned)
+}
+
+
+election_results <- state_strings %>% 
+  map_dfr(get_county_dat)
+
+real_time <- as.character(election_results$retrieved_time[1]) %>% str_replace_all(":", "-")
+
+dir.create(paste0("data/", real_time))
+
+write_csv(election_results, path = paste0("data/", real_time, "/results_president.csv"))
+```
+
+
+```{r, data}
+counties_sf <- get_urbn_map("counties", sf = TRUE)
+
+alaska_fips <- counties_sf %>% 
+  filter(state_name == "Alaska") %>% 
+  pull(county_fips) 
+
+elex_alaska <- election_results %>% 
+  filter(state == "alaska") %>% 
+  mutate_at(vars(contains("vote"), contains("result"), reporting, precincts), ~sum(.x, na.rm = T)) %>% 
+  mutate_at(vars(eevp, margin2020), ~mean(.x, na.rm = T)) %>% 
+  mutate(name = "Alaska",
+         eevp_value = paste0(eevp, "%"),
+         eevp_display = paste0(eevp, "% reported"),
+         leader_margin_value =  abs(margin2020),
+         leader_margin_display =  ifelse(margin2020 > 0, paste0("R+", round(leader_margin_value)),  paste0("D+", round(leader_margin_value))),
+         leader_margin_name_display =  ifelse(margin2020 > 0, paste0("Trump +",round(leader_margin_value)),  paste0("Biden +", round(leader_margin_value))),
+         leader_party_id =  ifelse(margin2020 > 0, "republican", "democrat"))  %>% 
+  slice(1:length(alaska_fips)) %>% 
+  mutate(fips = alaska_fips) 
+
+elex <- election_results  %>% 
+  filter(state != "alaska") %>% 
+  bind_rows(elex_alaska) %>% 
+  mutate(trump_perc = results_trumpd/votes*100,
+         biden_perc = results_bidenj/votes*100,
+         kanye_perc = results_westk/votes*100) %>% 
+  rename(county_fips = fips)
+
+
+
+counties_sf %>% 
+  left_join(elex) %>% 
+  mutate(abs_margin2020 = abs(margin2020)) %>% 
+  ggplot(aes(fill = margin2016)) +
+  geom_sf(aes(alpha = abs_margin2020), color = NA) +
+  scale_fill_gradient2(low = "blue", mid = "purple", high = "red") +
+  theme_void() +
+  scale_alpha(range = c(0.8, 1), guide = "none")
+```
+
+
+```{r, data}
+library(ggtext)
+
+counties_sf %>% 
+  left_join(elex) %>% 
+  mutate(abs_margin2020 = abs(margin2020)) %>% 
+  ggplot(aes(fill = margin2020)) +
+  geom_sf(aes(alpha = abs_margin2020), 
+          color = NA)   +
+  geom_sf(data = get_urbn_map("states", sf = T), color = "black", inherit.aes = F, fill = NA) +
+  scale_fill_gradient2("Margins", 
+                       low = "#0000ff", 
+                       mid = "purple", 
+                       high = "#ff0803",
+                       labels = c("+50% Biden", "0%", "+50% Trump"),
+                       breaks = c(-50, 0, 50)) +
+  theme_void() +
+  scale_alpha(range = c(0.75, 1), guide = "none") +
+  labs(title = "**Preliminary** Results of US 2020 Election", 
+       subtitle = "Note: In many counties votes are still being counted.\n",
+       caption = "\nSource: New York Times. Last updated: 2020-11-07 14:15:14. Visualization created by @favstats") +
+  theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "top") +
+  guides(fill = guide_colourbar(direction = "horizontal",
+                                label.position = "bottom",
+                                barwidth  = 18,
+                                barheight = 0.8,  
+                                title.vjust = 0.9))
+
+ggsave_it(us2020map, width = 8, height = 6)
+
+
+```
+
+```{r}
+counties_sf %>% 
+  left_join(elex) %>% 
+  # mutate(abs_margin2020 = abs(margin2020)) %>% 
+  ggplot(aes(fill = kanye_perc)) +
+  geom_sf(color = NA, na.value = "lightgrey")   +
+  geom_sf(data = get_urbn_map("states", sf = T), color = "black", inherit.aes = F, fill = NA, na.value = "lightgrey") +
+  scale_fill_gradient("Kanye West Vote Share", 
+                       low = "white", 
+                       high = "purple", breaks = c(0.25, 0.5, 0.75, 1), labels = c("0.25%", "0.5%", "0.75%"  ,"1%")) +
+  theme_void() +
+  scale_alpha(range = c(0.75, 1), guide = "none") +
+  labs(title = "**Kanye West Vote Share in US 2020 Presidential Election**", 
+       subtitle = "Note: In many counties votes are still being counted.\n",
+       caption = "\nSource: New York Times. Last updated: 2020-11-07 14:15:14. Visualization created by @favstats") +
+  theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "top") +
+  guides(fill = guide_colourbar(direction = "horizontal",
+                                label.position = "bottom",
+                                barwidth  = 18,
+                                barheight = 0.8,  
+                                title.vjust = 0.9))
+
+ggsave_it(kanye_map, width = 8, height = 6)
+
+```
+
+
+```{r}
+
+
+
+
+```
+
+
+## Analysis / Dataviz
+
+```{r, analysis}
+
+
+
+```
+
+
+
+## Conclusion
