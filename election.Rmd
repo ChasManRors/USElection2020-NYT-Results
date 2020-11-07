@@ -194,10 +194,73 @@ tidytemplate::ggsave_it(kanye_map, width = 8, height = 6)
 
 ```{r, analysis}
 
+ggthemes::colorblind_pal()(11)
+
+viridis::viridis(11)
+
+counties_sf %>% 
+  left_join(elex) %>% 
+  mutate(abs_margin2020 = abs(margin2020)) %>% 
+  ggplot(aes(fill = margin2020)) +
+  geom_sf(aes(alpha = abs_margin2020), 
+          color = NA)   +
+  geom_sf(data = get_urbn_map("states", sf = T), color = "black", inherit.aes = F, fill = NA) +
+  scale_fill_gradient2("Margins", 
+                       low = "#440154FF",
+                       mid = "#FDE725FF",
+                       high = "#21908CFF",
+                       labels = c("+50% Biden", "0%", "+50% Trump"),
+                       breaks = c(-50, 0, 50)) +
+  theme_void() +
+  scale_alpha(range = c(0.75, 1), guide = "none") +
+  labs(title = "**Preliminary** Results of US 2020 Election", 
+       subtitle = "Note: In many counties votes are still being counted.\n",
+       caption = glue::glue("\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n")) +
+  theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "top") +
+  guides(fill = guide_colourbar(direction = "horizontal",
+                                label.position = "bottom",
+                                barwidth  = 18,
+                                barheight = 0.8,  
+                                title.vjust = 0.9))
+
+tidytemplate::ggsave_it(us2020map_colorblind, width = 8, height = 6)
 
 
 ```
 
+```{r, analysis}
 
 
-## Conclusion
+counties_sf %>% 
+  left_join(elex) %>% 
+  mutate(abs_margin2020 = abs(margin2020)) %>% 
+  ggplot(aes(fill = margin2020)) +
+  geom_sf(aes(alpha = abs_margin2020), 
+          color = NA)   +
+  # geom_sf(data = get_urbn_map("states", sf = T), color = "black", inherit.aes = F, fill = NA) +
+  scale_fill_gradient2("Margins", 
+                       low = "#0000ff", 
+                       mid = "purple", 
+                       high = "#ff0803",
+                       labels = c("+50% Biden", "0%", "+50% Trump"),
+                       breaks = c(-50, 0, 50)) +
+  theme_void() +
+  scale_alpha(range = c(0.75, 1), guide = "none") +
+  labs(title = "**Preliminary** Results of US 2020 Election", 
+       subtitle = "Note: In many counties votes are still being counted.\n",
+       caption = glue::glue("\nSource: New York Times. Last updated: {as.character(elex$retrieved_time)[1]}. Visualization created by @favstats\n")) +
+  theme(plot.title = element_markdown(hjust = 0.5, lineheight = 1.2), 
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "top") +
+  guides(fill = guide_colourbar(direction = "horizontal",
+                                label.position = "bottom",
+                                barwidth  = 18,
+                                barheight = 0.8,  
+                                title.vjust = 0.9))
+
+tidytemplate::ggsave_it(us2020map_nostateborders, width = 8, height = 6)
+
+
+```
