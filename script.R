@@ -4,6 +4,7 @@ library(jsonlite)
 library(purrr)
 library(janitor)
 library(readr)
+library(tidyr)
 
 state_strings <- c("alaska", "texas", "minnesota", "michigan", "west-virginia", 
   "virginia", "wisconsin", "kentucky", "louisiana", "mississippi", 
