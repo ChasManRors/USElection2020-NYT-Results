@@ -51,4 +51,4 @@ real_time <- as.character(election_results$retrieved_time[1]) %>% str_replace_al
 
 dir.create(paste0("data/", real_time))
 
-write_csv(election_results, path = paste0("data/", real_time, "/results_president.csv"))
+write_csv(election_results, file = paste0("data/", real_time, "/results_president.csv"))
