@@ -1,11 +1,11 @@
 
-library(dplyr)
-library(jsonlite)
-library(purrr)
-library(janitor)
-library(readr)
-library(tidyr)
-library(stringr)
+# library(dplyr)
+# library(jsonlite)
+# library(purrr)
+# library(janitor)
+# library(readr)
+# library(tidyr)
+# library(stringr)
 
 cat("hello", file ="what.txt" , append = T)
 # 
