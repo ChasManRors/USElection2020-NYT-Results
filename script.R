@@ -34,8 +34,8 @@ get_county_dat <- function(x) {
            results_absentee = list(as.list(results_absentee)),
            state = x, 
            retrieved_time = time) %>%
-    unnest_wider(results, names_sep = "_")  %>%
-    unnest_wider(results_absentee, names_sep = "_")  %>% 
+    tidyr::unnest_wider(results, names_sep = "_")  %>%
+    tidyr::unnest_wider(results_absentee, names_sep = "_")  %>% 
     janitor::clean_names()
   
   return(cleaned)
