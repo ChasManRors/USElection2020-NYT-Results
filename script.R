@@ -5,6 +5,7 @@ library(purrr)
 library(janitor)
 library(readr)
 library(tidyr)
+library(stringr)
 
 state_strings <- c("alaska", "texas", "minnesota", "michigan", "west-virginia", 
   "virginia", "wisconsin", "kentucky", "louisiana", "mississippi", 
